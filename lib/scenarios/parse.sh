@@ -40,7 +40,10 @@ scenarios_parse_monitor_condition() {
 scenarios_parse_commands() {
     local yaml_path="$1"
     local scenario_name="$2"
-    yq -r ".scenarios.$scenario_name.commands[]?" "$yaml_path" 2>/dev/null || echo ""
+    log_debug "parse_commands called with yaml_path: '$yaml_path', scenario_name: '$scenario_name'" >&2
+    local result; result=$(yq -r ".scenarios.$scenario_name.commands[]" "$yaml_path" 2>/dev/null || echo "")
+    log_debug "parse_commands result: '$result'" >&2
+    echo "$result"
 }
 
 

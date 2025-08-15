@@ -319,7 +319,7 @@ scenarios:
 - Check app names match exactly
 - Verify project paths exist for `app_and_project` type
 
-**"yq command not found"**
+**"yq command not found"**```
 
 - Install yq: `brew install yq`
 - Ensure it's in your PATH
