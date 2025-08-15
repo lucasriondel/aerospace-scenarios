@@ -5,11 +5,11 @@
 # Usage: aerospace_helpers_get_window_id_by_app_and_project "app_name" "project_path"
 # Returns: window ID if found and project matches, empty string if not found
 
-# Source dependencies - SCRIPT_DIR should be set by the main script
+# Source dependencies
 if [ -z "$SCRIPT_DIR" ]; then
     SCRIPT_DIR="$(dirname "$0")/.."
 fi
-source "$SCRIPT_DIR/lib/does_window_corresponds_to_project_folder.sh"
+source "$SCRIPT_DIR/lib/match.sh"
 
 aerospace_helpers_get_window_id_by_app_and_project() {
     local app_name="$1"
@@ -17,6 +17,15 @@ aerospace_helpers_get_window_id_by_app_and_project() {
     
     if [ -z "$app_name" ] || [ -z "$project_path" ]; then
         echo "Usage: aerospace_helpers_get_window_id_by_app_and_project <app_name> <project_path>" >&2
+        return 1
+    fi
+    
+    # Expand tilde to home directory
+    project_path=$(eval echo "$project_path")
+    
+    # Check if project path exists
+    if [ ! -d "$project_path" ]; then
+        echo "Error: Project path '$project_path' does not exist" >&2
         return 1
     fi
     
@@ -35,8 +44,23 @@ aerospace_helpers_get_window_id_by_app_and_project() {
         id=$(echo "$id" | sed 's/^[ \t]*//;s/[ \t]*$//')
         title=$(echo "$title" | sed 's/^[ \t]*//;s/[ \t]*$//')
         
-        # Check if window title matches project folder
-        if aerospace_helpers_does_window_corresponds_to_project_folder "$title" "$project_path"; then
+        # Check if any project folder name appears in the window title
+        local match_found=false
+        local temp_file=$(mktemp)
+        find "$project_path" -maxdepth 1 -type d -exec basename {} \; | tail -n +2 > "$temp_file"
+        
+        while IFS= read -r folder; do
+            if [[ -n "$folder" ]]; then
+                if aerospace_helpers_match "$folder" "$title"; then
+                    match_found=true
+                    break
+                fi
+            fi
+        done < "$temp_file"
+        
+        rm "$temp_file"
+        
+        if [ "$match_found" = true ]; then
             window_id="$id"
             break
         fi
