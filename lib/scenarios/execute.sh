@@ -18,7 +18,7 @@ scenarios_monitor_condition_holds() {
     local op; op="${cond%%|*}"; local val; val="${cond#*|}"
     local count; count=$(scenarios_monitor_count)
     
-    scenarios_log "DEBUG: Condition check - op: $op, val: $val, count: $count" >&2
+    log_debug "Condition check - op: $op, val: $val, count: $count"
 
     case "$op" in
         eq) [ "$count" -eq "$val" ] ;;
@@ -29,7 +29,7 @@ scenarios_monitor_condition_holds() {
     esac
     
     local result=$?
-    scenarios_log "DEBUG: Condition result: $result" >&2
+    log_debug "Condition result: $result"
     return $result
 }
 
@@ -38,17 +38,25 @@ scenarios_find_matching_scenario() {
     local scenario_names; scenario_names=$(scenarios_parse_scenario_names "$yaml_path")
     local result=""
     
+    log_debug "Found scenarios: $scenario_names"
+    
     # Convert to array to avoid file reading issues
     local scenarios=()
     while IFS= read -r name; do
         [ -n "$name" ] && scenarios+=("$name")
     done <<< "$scenario_names"
     
+    log_debug "Array has ${#scenarios[@]} elements: ${scenarios[*]}"
+    
     # Process each scenario
     for scenario_name in "${scenarios[@]}"; do
+        log_debug "Checking scenario: $scenario_name"
+        
         local cond; cond=$(scenarios_parse_monitor_condition "$yaml_path" "$scenario_name")
         local op; op="${cond%%|*}"; local val; val="${cond#*|}"
         local count; count=$(scenarios_monitor_count)
+        
+        log_debug "Condition check - op: $op, val: $val, count: $count"
         
         local condition_holds=false
         case "$op" in
@@ -60,11 +68,15 @@ scenarios_find_matching_scenario() {
         esac
         
         if [ "$condition_holds" = true ]; then
+            log_debug "Match found: $scenario_name"
             result="$scenario_name"
             break
+        else
+            log_debug "No match for: $scenario_name"
         fi
     done
     
+    log_debug "Final result: '$result'"
     echo "$result"
 }
 
@@ -117,7 +129,7 @@ scenarios_execute_commands() {
     while IFS= read -r cmd; do
         [ -z "$cmd" ] && continue
         local final_cmd; final_cmd=$(scenarios_replace_placeholders "$cmd" "$ws_map" "$win_map")
-        scenarios_log "Running: $final_cmd"
+        log "Running: $final_cmd"
         eval "$final_cmd"
         sleep 0.1
     done < <(scenarios_parse_commands "$yaml_path" "$scenario_name")

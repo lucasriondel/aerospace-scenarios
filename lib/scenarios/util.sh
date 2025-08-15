@@ -2,18 +2,24 @@
 
 # Utility helpers for scenario system
 
+# Check if logging functions are available, if not provide fallbacks
+if ! declare -F log >/dev/null 2>&1; then
+    # Fallback logging functions if not sourced from main script
+    log() { echo "$1"; }
+    log_verbose() { :; }  # No-op for verbose logging
+    log_debug() { :; }    # No-op for debug logging
+    log_error() { echo "ERROR: $1" >&2; }
+    log_warning() { echo "WARNING: $1" >&2; }
+    log_success() { echo "SUCCESS: $1"; }
+fi
+
+# Use the logging functions from the main script
 scenarios_log() {
-    local message="$1"
-    if declare -F log >/dev/null 2>&1; then
-        log "$message"
-    else
-        echo "$message"
-    fi
+    log "$1"
 }
 
 scenarios_fail() {
-    local message="$1"
-    scenarios_log "ERROR: $message"
+    log_error "$1"
     return 1
 }
 

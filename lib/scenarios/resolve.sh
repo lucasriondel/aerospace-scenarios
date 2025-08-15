@@ -8,7 +8,7 @@ source "$SCRIPT_DIR_LOCAL/parse.sh"
 
 # Source existing helper libraries
 if [ -z "$SCRIPT_DIR" ]; then
-    SCRIPT_DIR="$AEROSPACE_SCRIPT_ROOT"
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 fi
 source "$SCRIPT_DIR/lib/get_window_id_by_app.sh"
 source "$SCRIPT_DIR/lib/get_window_id_by_app_and_project.sh"

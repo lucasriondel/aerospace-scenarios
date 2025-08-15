@@ -1,0 +1,127 @@
+#!/bin/bash
+
+ROOT_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Check for help before sourcing anything
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+    echo "Usage: $0 [LOGGING_OPTIONS] <scenario_yaml_path>"
+    echo ""
+    echo "LOGGING_OPTIONS:"
+    echo "  --log-to-file          Log to file only (default)"
+    echo "  --log-to-stdout        Log to stdout only"
+    echo "  --log-to-both          Log to both file and stdout"
+    echo "  --no-log               Disable logging"
+    echo "  --log-file PATH        Set custom log file path"
+    echo "  --verbose              Enable verbose logging"
+    echo ""
+    echo "Environment variables:"
+    echo "  LOG_DESTINATION        Set to: file, stdout, both, or none"
+    echo "  LOG_FILE_PATH          Set custom log file path"
+    echo "  LOG_VERBOSE            Set to true for verbose logging"
+    echo ""
+    echo "Examples:"
+    echo "  $0 scenario.yaml                    # Run with default logging (file)"
+    echo "  $0 --verbose scenario.yaml          # Run with verbose logging"
+    echo "  $0 --log-to-stdout scenario.yaml    # Log to stdout only"
+    echo "  $0 --log-to-both scenario.yaml      # Log to both file and stdout"
+    exit 0
+fi
+
+# Source the logging library first
+source "$ROOT_SCRIPT_DIR/lib/log/logging.sh"
+
+# Parse logging arguments first (source the function to avoid subshell issues)
+parse_logging_args "$@"
+
+# Set up logging redirection based on destination
+case "$LOG_DESTINATION" in
+    "file")
+        exec > "$LOG_FILE_PATH" 2>&1
+        ;;
+    "stdout")
+        # No redirection needed, keep stdout
+        ;;
+    "both")
+        # Use tee to log to both file and stdout
+        exec > >(tee "$LOG_FILE_PATH") 2>&1
+        ;;
+    "none")
+        exec > /dev/null 2>&1
+        ;;
+esac
+
+# Initialize logging
+init_logging
+
+# Source the scenario libraries
+log "Sourcing scenario libraries from: $ROOT_SCRIPT_DIR/lib/scenarios"
+source "$ROOT_SCRIPT_DIR/lib/scenarios/util.sh"
+source "$ROOT_SCRIPT_DIR/lib/scenarios/validator.sh"
+source "$ROOT_SCRIPT_DIR/lib/scenarios/execute.sh"
+log_success "Scenario libraries sourced successfully"
+
+usage() {
+    echo "Usage: $0 [LOGGING_OPTIONS] <scenario_yaml_path>"
+    echo ""
+    echo "LOGGING_OPTIONS:"
+    echo "  --log-to-file          Log to file only (default)"
+    echo "  --log-to-stdout        Log to stdout only"
+    echo "  --log-to-both          Log to both file and stdout"
+    echo "  --no-log               Disable logging"
+    echo "  --log-file PATH        Set custom log file path"
+    echo "  --verbose              Enable verbose logging"
+    echo ""
+    echo "Environment variables:"
+    echo "  LOG_DESTINATION        Set to: file, stdout, both, or none"
+    echo "  LOG_FILE_PATH          Set custom log file path"
+    echo "  LOG_VERBOSE            Set to true for verbose logging"
+    echo ""
+    echo "Examples:"
+    echo "  $0 scenario.yaml                    # Run with default logging (file)"
+    echo "  $0 --verbose scenario.yaml          # Run with verbose logging"
+    echo "  $0 --log-to-stdout scenario.yaml    # Log to stdout only"
+    echo "  $0 --log-to-both scenario.yaml      # Log to both file and stdout"
+}
+
+main() {
+    local yaml_path="$1"
+    if [ -z "$yaml_path" ]; then
+        log_error "No scenario file specified"
+        usage
+        exit 1
+    fi
+    if [ ! -f "$yaml_path" ]; then
+        log_error "Scenario file not found: $yaml_path"
+        exit 1
+    fi
+
+    log "Processing scenario file: $yaml_path"
+    
+    log_verbose "Validating required tools..."
+    scenarios_validate_required_tools || {
+        log_error "Tool validation failed"
+        exit 1
+    }
+    
+    log_verbose "Validating scenario schema..."
+    scenarios_validate_schema "$yaml_path" || {
+        log_error "Schema validation failed"
+        exit 1
+    }
+    log_success "Schema validation passed"
+
+    log_verbose "Finding matching scenario..."
+    local matching_scenario; matching_scenario=$(scenarios_find_matching_scenario "$yaml_path")
+    if [ -n "$matching_scenario" ]; then
+        log_success "Monitor condition holds for scenario '$matching_scenario'. Executing scenario."
+        scenarios_execute_commands "$yaml_path" "$matching_scenario"
+        log_success "Scenario execution completed"
+    else
+        log_warning "No scenario conditions match. Skipping execution."
+    fi
+}
+
+# Call main with the remaining arguments
+main "${REMAINING_ARGS[@]}"
+
+
