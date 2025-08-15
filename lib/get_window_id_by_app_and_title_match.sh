@@ -2,7 +2,7 @@
 
 # Get window ID by app name and title string match
 # Namespace: aerospace_helpers
-# Usage: aerospace_helpers_get_window_id_by_app_and_title_match "app_name" "title_string"
+# Usage: aerospace_helpers_get_window_id_by_app_and_title_match "app_name" "title_string" "aerospace_window_list"
 # Returns: window ID if found and title string matches, empty string if not found
 
 # Source dependencies
@@ -14,14 +14,15 @@ source "$SCRIPT_DIR/lib/match.sh"
 aerospace_helpers_get_window_id_by_app_and_title_match() {
     local app_name="$1"
     local title_string="$2"
+    local aerospace_window_list="$3"
     
-    if [ -z "$app_name" ] || [ -z "$title_string" ]; then
-        echo "Usage: aerospace_helpers_get_window_id_by_app_and_title_match <app_name> <title_string>" >&2
+    if [ -z "$app_name" ] || [ -z "$title_string" ] || [ -z "$aerospace_window_list" ]; then
+        echo "Usage: aerospace_helpers_get_window_id_by_app_and_title_match <app_name> <title_string> <aerospace_window_list>" >&2
         return 1
     fi
     
-    # Get aerospace window list and filter by app
-    local filtered_windows=$(aerospace list-windows --all | grep "$app_name")
+    # Filter aerospace window list by app
+    local filtered_windows=$(echo "$aerospace_window_list" | grep "$app_name")
     
     # Check each window for title string match
     local window_id=""

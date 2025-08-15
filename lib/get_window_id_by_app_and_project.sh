@@ -2,7 +2,7 @@
 
 # Get window ID by app name and project folder match
 # Namespace: aerospace_helpers
-# Usage: aerospace_helpers_get_window_id_by_app_and_project "app_name" "project_path"
+# Usage: aerospace_helpers_get_window_id_by_app_and_project "app_name" "project_path" "aerospace_window_list"
 # Returns: window ID if found and project matches, empty string if not found
 
 # Source dependencies
@@ -14,9 +14,10 @@ source "$SCRIPT_DIR/lib/match.sh"
 aerospace_helpers_get_window_id_by_app_and_project() {
     local app_name="$1"
     local project_path="$2"
+    local aerospace_window_list="$3"
     
-    if [ -z "$app_name" ] || [ -z "$project_path" ]; then
-        echo "Usage: aerospace_helpers_get_window_id_by_app_and_project <app_name> <project_path>" >&2
+    if [ -z "$app_name" ] || [ -z "$project_path" ] || [ -z "$aerospace_window_list" ]; then
+        echo "Usage: aerospace_helpers_get_window_id_by_app_and_project <app_name> <project_path> <aerospace_window_list>" >&2
         return 1
     fi
     
@@ -29,8 +30,8 @@ aerospace_helpers_get_window_id_by_app_and_project() {
         return 1
     fi
     
-    # Get aerospace window list and filter by app
-    local filtered_windows=$(aerospace list-windows --all | grep "$app_name")
+    # Filter aerospace window list by app
+    local filtered_windows=$(echo "$aerospace_window_list" | grep "$app_name")
     
     # Check each window for project match - avoid subshell by using array
     local window_id=""
